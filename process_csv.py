@@ -1,7 +1,9 @@
 """Process a CSV of coordinates and print request templates.
 
 The script expects a CSV file containing ``latitude`` and ``longitude`` columns
-as well as a column made of 9‑digit strings representing SAP IDs.  It renames
+as well as a column made of 9‑digit strings representing SAP IDs.  Column names
+for latitude and longitude are matched case-insensitively so that ``Latitude``
+and ``Longitude`` are also accepted.  The script renames
 that column to ``SapID`` (prompting the user when multiple candidates exist),
 reverse geocodes each coordinate using the Google Maps API and prints a filled
 request template for every row.
@@ -48,6 +50,14 @@ def _is_nine_digit_column(series: pd.Series) -> bool:
 
 def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """Identify the SAP ID column and ensure required fields are present."""
+    # Normalize latitude/longitude column names for possible capitalized forms.
+    rename_map = {}
+    for col in df.columns:
+        lower = col.lower()
+        if lower in {"latitude", "longitude"}:
+            rename_map[col] = lower
+    if rename_map:
+        df = df.rename(columns=rename_map)
 
     # Drop the ``Name`` column if it does not contain 9 digit strings.
     if "Name" in df.columns and not _is_nine_digit_column(df["Name"]):
